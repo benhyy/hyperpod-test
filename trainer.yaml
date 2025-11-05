@@ -1,0 +1,57 @@
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: pytorch-prebuilt
+spec:
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: 1
+      restartPolicy: Never
+      template:
+        spec:
+          volumes:
+          - name: ephemeral
+            emptyDir:
+              sizeLimit: 10Gi
+          serviceAccountName: eks-s3-training-access
+          initContainers:
+          - name: script-downloader
+            image: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.8.0-cpu-py312-ubuntu22.04-sagemaker
+            command:
+            - "sh"
+            - "-c"
+            - "cd /opt/ml/code && aws s3 cp s3://andjsmi-data-testing/hyperpod-prebiult/sourcedir.tar.gz . && tar -xvzf sourcedir.tar.gz"
+            volumeMounts:
+            - name: ephemeral
+              mountPath: "/opt/ml/code"
+          containers:
+          - name: pytorch
+            image: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.8.0-gpu-py312-cu129-ubuntu22.04-ec2
+            command:
+            - "bash"
+            - "/opt/ml/code/train.sh"
+            resources:
+              limits:
+                cpu: "48"
+                memory: 32Gi
+                nvidia.com/gpu: 8
+                ephemeral-storage: "16Gi"
+              requests:
+                cpu: "48"
+                memory: 32Gi
+                nvidia.com/gpu: 8
+                ephemeral-storage: "16Gi"
+            env:
+              - name: "SAGEMAKER_PROGRAM"
+                value: "train.py"
+              - name: "SAGEMAKER_SUBMIT_DIRECTORY"
+                value: "s3://andjsmi-data-testing/hyperpod-prebiult/sourcedir.tar.gz"
+              - name: "SAGEMAKER_CONTAINER_LOG_LEVEL"
+                value: "0"
+              - name: "SAGEMAKER_BASE_DIR"
+                value: "/opt/ml"
+              - name: "HF_TOKEN"
+                value: "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"
+            volumeMounts:
+            - name: ephemeral
+              mountPath: "/opt/ml/code"

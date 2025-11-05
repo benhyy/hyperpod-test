@@ -1,0 +1,13 @@
+{
+    "Version":"2012-10-17",		 	 	 
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": "arn:aws:s3:::andjsmi-*"
+        }
+    ]
+}
+
+eksctl create iamserviceaccount --name my-service-account --namespace default --cluster my-cluster --role-name eks-hyperpod-iam-access-training \
+    --attach-policy-arn arn:aws:iam::485579262988:policy/my-policy2 --approve
