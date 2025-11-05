@@ -3,9 +3,21 @@ kind: PyTorchJob
 metadata:
   name: pytorch-prebuilt
 spec:
+  elasticPolicy:
+    rdzvBackend: c10d
+    minReplicas: 1
+    maxReplicas: 64
+    maxRestarts: 100
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 90
   pytorchReplicaSpecs:
     Worker:
-      replicas: 1
+      replicas: 2
       restartPolicy: Never
       template:
         spec:
@@ -32,13 +44,9 @@ spec:
             - "/opt/ml/code/train.sh"
             resources:
               limits:
-                cpu: "48"
-                memory: 32Gi
                 nvidia.com/gpu: 8
                 ephemeral-storage: "16Gi"
               requests:
-                cpu: "48"
-                memory: 32Gi
                 nvidia.com/gpu: 8
                 ephemeral-storage: "16Gi"
             env:
@@ -50,8 +58,6 @@ spec:
                 value: "0"
               - name: "SAGEMAKER_BASE_DIR"
                 value: "/opt/ml"
-              - name: "HF_TOKEN"
-                value: "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"
             volumeMounts:
             - name: ephemeral
               mountPath: "/opt/ml/code"
