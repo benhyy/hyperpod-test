@@ -1,0 +1,3 @@
+bucket: andjsmi-data-testing
+script: train.py
+source_dir: code

@@ -1,0 +1,58 @@
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: {{ job_name }}
+spec:
+  elasticPolicy:
+    rdzvBackend: c10d
+    minReplicas: 1
+    maxReplicas: 64
+    maxRestarts: 100
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 90
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: 2
+      restartPolicy: Never
+      template:
+        spec:
+          volumes:
+          - name: ephemeral
+            emptyDir:
+              sizeLimit: 10Gi
+          serviceAccountName: eks-s3-training-access
+          initContainers:
+          - name: script-downloader
+            image: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.8.0-cpu-py312-ubuntu22.04-sagemaker
+            command:
+            - "sh"
+            - "-c"
+            - "cd /opt/ml/code && aws s3 cp {{ s3_prefix }} . && tar -xvzf sourcedir.tar.gz"
+            - "aws s3 cp {{ model_dir }} ./{{ model_local_dir }}"
+            - "pip install -r requirements.txt"
+            volumeMounts:
+            - name: ephemeral
+              mountPath: "/opt/ml/code"
+          containers:
+          - name: pytorch
+            image: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.8.0-gpu-py312-cu129-ubuntu22.04-ec2
+            command:
+            - "torchrun"
+            - "--nproc_per_node 1"
+            - "--nnodes 2"
+            - "/opt/ml/code/{{ script }}"
+            resources:
+              limits:
+                nvidia.com/gpu: 1
+                ephemeral-storage: "16Gi"
+              requests:
+                nvidia.com/gpu: 1
+                ephemeral-storage: "16Gi"
+            volumeMounts:
+            - name: ephemeral
+              mountPath: "/opt/ml/code"

@@ -1,0 +1,6 @@
+bucket: andjsmi-data-testing
+script: sft_train.py
+source_dir: code
+model_dir: s3://andjsmi-modelzoo-iad/deepseek-llama-8b/
+model_local_dir: deepseek
+job_name: test_job
