@@ -34,7 +34,6 @@ spec:
             - "-c"
             - "cd /opt/ml/code && aws s3 cp {{ s3_prefix }} . && tar -xvzf sourcedir.tar.gz"
             - "aws s3 cp {{ model_dir }} ./{{ model_local_dir }}"
-            - "pip install -r requirements.txt"
             volumeMounts:
             - name: ephemeral
               mountPath: "/opt/ml/code"
@@ -42,10 +41,9 @@ spec:
           - name: pytorch
             image: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:2.8.0-gpu-py312-cu129-ubuntu22.04-ec2
             command:
-            - "torchrun"
-            - "--nproc_per_node 1"
-            - "--nnodes 2"
-            - "/opt/ml/code/{{ script }}"
+              - "/bin/sh"
+              - "-c"
+              - "pip install -r /opt/ml/code/requirements.txt && torchrun --nproc_per_node 1 --nnodes 2 /opt/ml/code/{{ script }}"
             resources:
               limits:
                 nvidia.com/gpu: 1
